@@ -1,0 +1,14 @@
+<resources>
+    <!-- Default screen margins, per the Android Design guidelines. -->
+    <dimen name="activity_horizontal_margin">16dp</dimen>
+    <dimen name="activity_vertical_margin">16dp</dimen>
+
+    <dimen name="card_border_size">1px</dimen>
+    <dimen name="grid_spacing">8dp</dimen>
+
+    <dimen name="demo_volts_margin_top">60dp</dimen>
+    <dimen name="demo_seconds_margin_right">40dp</dimen>
+
+    <dimen name="settings_spacing">40dp</dimen>
+
+</resources>

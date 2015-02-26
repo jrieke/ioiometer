@@ -1,0 +1,40 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context="com.ioiometer.MainActivity" >
+
+    <!-- TODO: Check if android:showAsAction makes a poblem on older Android devices. Using app:showAsAction hides the action bar icons on Android 4-->
+
+    <item
+        android:id="@+id/start_pause"
+        android:title="Start"
+        android:icon="@drawable/ic_menu_start"
+        android:showAsAction="always"/>
+
+    <item
+        android:id="@+id/clear"
+        android:title="Clear"
+        android:icon="@drawable/ic_menu_clear"
+        android:showAsAction="ifRoom"/>
+
+    <item
+        android:id="@+id/switch_view"
+        android:title="Switch View"
+        android:icon="@drawable/ic_menu_switch_view"
+        android:showAsAction="ifRoom"/>
+
+    <item
+        android:id="@+id/save"
+        android:title="Save as CSV"
+        android:icon="@drawable/ic_save"
+        android:showAsAction="ifRoom"/>
+
+    <item
+        android:id="@+id/show_settings"
+        android:title="Show Settings"
+        android:icon="@drawable/ic_menu_settings"
+        android:showAsAction="ifRoom"
+        android:checkable="true"
+        android:checked="true"/>
+
+
+</menu>

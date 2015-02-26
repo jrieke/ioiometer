@@ -1,0 +1,6 @@
+<resources>
+    <dimen name="demo_volts_margin_top">160dp</dimen>
+    <dimen name="demo_seconds_margin_right">140dp</dimen>
+
+    <dimen name="settings_spacing">120dp</dimen>
+</resources>

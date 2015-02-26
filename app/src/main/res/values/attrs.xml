@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+    
+<resources>
+    <declare-styleable name="MyGridLayout">
+        <attr name="strechColumns" format="boolean"/>
+        <attr name="stretchRows" format="boolean"/>
+        <attr name="horizontalSpacing" format="dimension"/>
+        <attr name="verticalSpacing" format="dimension"/>
+    </declare-styleable>
+    <declare-styleable name="PlotViewGrid">
+        <attr name="collapseOnHide" format="boolean"/>
+    </declare-styleable>
+</resources>
