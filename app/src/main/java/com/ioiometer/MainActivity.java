@@ -3,6 +3,7 @@ package com.ioiometer;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -214,8 +215,9 @@ public class MainActivity extends IOIOActivity implements PinView.OnTimeRangeCha
                 // Position the ProgressBar by looking at the start position of the content area.
                 // Note: mainProgressBar.setY(136) will not work because of different screen densities and different sizes of the action bar.
                 View contentView = decorView.findViewById(android.R.id.content);
-                // TODO: Disable this for Android < 11
-                mainProgressBar.setY(contentView.getY() - 10);
+
+                if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
+                    mainProgressBar.setY(contentView.getY() - 10);
 
                 ViewTreeObserver observer = mainProgressBar.getViewTreeObserver();
                 observer.removeGlobalOnLayoutListener(this);
