@@ -14,9 +14,12 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewTreeObserver;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.FrameLayout;
 import android.widget.ProgressBar;
 import android.widget.SeekBar;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 import java.io.File;
@@ -68,10 +71,13 @@ public class MainActivity extends IOIOActivity implements PinView.OnTimeRangeCha
     private View settings;
     private boolean settingsVisible = true;
 
-    private int measurementInterval;  // ms
-    private final static int MIN_MEASUREMENT_INTERVAL = 5;  // ms
-    private final static int MAX_MEASUREMENT_INTERVAL = 200;  // ms
-    private final static int DEFAULT_MEASUREMENT_INTERVAL = 50;  // ms
+    private int measurementInterval;  // in measurementUnit's
+    private final static int MIN_MEASUREMENT_INTERVAL = 5;
+    private final static int MAX_MEASUREMENT_INTERVAL = 200;
+    private final static int DEFAULT_MEASUREMENT_INTERVAL = 50;
+
+    private MeasurementUnit measurementUnit;
+    private final static MeasurementUnit DEFAULT_MEASUREMENT_UNIT = MeasurementUnit.MS;
 
     private int numDatapoints;
     private final static int MIN_NUM_DATAPOINTS = 1000;
@@ -87,6 +93,28 @@ public class MainActivity extends IOIOActivity implements PinView.OnTimeRangeCha
     private MenuItem menuItemShowSettings;
 
     private ProgressBar mainProgressBar;
+
+    private enum MeasurementUnit {
+        MS      ("ms",   1),
+        SEC     ("sec",  1000),
+        MIN     ("min",  60000);
+
+        private String label;
+        private int msMultiplier;
+        MeasurementUnit(String label, int ms) {
+            this.label=label;
+            this.msMultiplier=ms;
+        }
+        public String toString() { return label; }
+        public long getMsMultiplier() { return msMultiplier; }
+        public static MeasurementUnit fromString(String label) {
+            if(label==null) return DEFAULT_MEASUREMENT_UNIT;
+            for(MeasurementUnit unit: MeasurementUnit.values()) {
+                if(unit.label.equals(label)) return unit;
+            }
+            return DEFAULT_MEASUREMENT_UNIT;
+        }
+    }
 
     // A separate thread which steadily updates the graphs in the current view if not paused.
     Thread uiThread = new Thread() {
@@ -160,6 +188,7 @@ public class MainActivity extends IOIOActivity implements PinView.OnTimeRangeCha
         timeRangeMax = timeRangeMin + Double.longBitsToDouble(preferences.getLong("time_range", Double.doubleToLongBits(TIME_RANGE_DEFAULT)));
         settingsVisible = preferences.getBoolean("settings_visible", true);
         measurementInterval = preferences.getInt("measurement_interval", DEFAULT_MEASUREMENT_INTERVAL);
+        measurementUnit = MeasurementUnit.fromString(preferences.getString("measurement_unit", DEFAULT_MEASUREMENT_UNIT.toString()));
         numDatapoints = preferences.getInt("num_datapoints", DEFAULT_NUM_DATAPOINTS);
         setMaxDatapoints(numDatapoints);
         viewMode = preferences.getInt("view_mode", VIEW_MODE_SINGLE);
@@ -223,18 +252,44 @@ public class MainActivity extends IOIOActivity implements PinView.OnTimeRangeCha
             }
 
             @Override
-            public void onStartTrackingTouch(SeekBar seekBar) { }
+            public void onStartTrackingTouch(SeekBar seekBar) {
+            }
 
             @Override
-            public void onStopTrackingTouch(SeekBar seekBar) { }
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                showIntervalUnit();
+            }
         });
 
-        ((SeekBar)findViewById(R.id.seek_bar_num_datapoints)).setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+        ArrayAdapter<MeasurementUnit> adapter = new ArrayAdapter<MeasurementUnit>(this,android.R.layout.simple_spinner_item,MeasurementUnit.values());
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+
+        Spinner measurementSpinner=((Spinner)findViewById(R.id.seek_bar_measurement_unit));
+        measurementSpinner.setAdapter(adapter);
+        measurementSpinner.setSelection(adapter.getPosition(measurementUnit));
+        measurementSpinner.setOnItemSelectedListener(new Spinner.OnItemSelectedListener() {
             @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) { }
+            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                MeasurementUnit unit=(MeasurementUnit)adapterView.getItemAtPosition(i);
+                setMeasurementUnit(unit);
+                showIntervalUnit();
+            }
 
             @Override
-            public void onStartTrackingTouch(SeekBar seekBar) { }
+            public void onNothingSelected(AdapterView<?> adapterView) {
+                setMeasurementUnit(DEFAULT_MEASUREMENT_UNIT);
+                showIntervalUnit();
+            }
+        });
+
+        ((SeekBar) findViewById(R.id.seek_bar_num_datapoints)).setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+            }
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
@@ -261,6 +316,7 @@ public class MainActivity extends IOIOActivity implements PinView.OnTimeRangeCha
         SharedPreferences.Editor editor = preferences.edit();
         editor.putInt("view_mode", viewMode)
                 .putInt("measurement_interval", measurementInterval)
+                .putString("measurement_unit", measurementUnit.toString())
                 .putInt("num_datapoints", numDatapoints)
                 .putLong("time_range", Double.doubleToRawLongBits(timeRangeMax - timeRangeMin))
                 .putBoolean("settings_visible", settingsVisible);
@@ -287,6 +343,9 @@ public class MainActivity extends IOIOActivity implements PinView.OnTimeRangeCha
         this.measurementInterval = measurementInterval;
     }
 
+    private void setMeasurementUnit(MeasurementUnit measurementUnit) {
+        this.measurementUnit = measurementUnit;
+    }
 
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
@@ -480,7 +539,8 @@ public class MainActivity extends IOIOActivity implements PinView.OnTimeRangeCha
 
                         onMeasurementFinished();
                     }
-                    Thread.sleep(measurementInterval);
+
+                    Thread.sleep(measurementInterval * measurementUnit.getMsMultiplier());
                 } catch (ConnectionLostException e) {
                     // IOIOLib does not treat ConnectionLostException properly, so it's done here.
                     disconnected();
@@ -542,6 +602,13 @@ public class MainActivity extends IOIOActivity implements PinView.OnTimeRangeCha
      */
     private void showToast(String text) {
         Toast.makeText(MainActivity.this, text, Toast.LENGTH_SHORT).show();
+    }
+
+    /**
+     * Show toast with the current interval and unit
+     */
+    private void showIntervalUnit() {
+        showToast("Interval: " + measurementInterval + " " + measurementUnit.toString());
     }
 
     /**

@@ -46,7 +46,12 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:id="@+id/measurement_interval_max"
-                android:text="200 ms" />
+                android:text="200" />
+
+            <Spinner
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/seek_bar_measurement_unit" />
 
         </TableRow>
 
@@ -75,6 +80,11 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="10 k" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="" />
 
         </TableRow>
 
