@@ -49,7 +49,7 @@ public class MultiPinPlotView extends LinearLayout implements PinView {
         chart.setOnPlotRangeChangedListener(new MyLineChartView.OnPlotRangeChangedListener() {
             @Override
             public void onPlotRangeChanged(double xMin, double xMax, double yMin, double yMax) {
-
+                notifyTimeRangeChanged();
             }
         });
     }
@@ -132,6 +132,7 @@ public class MultiPinPlotView extends LinearLayout implements PinView {
         }
 
         textViewAll.setTextColor( (allPinsEnabled) ? Color.BLACK : Color.LTGRAY);
+
         chart.repaintPlot();
     }
 
@@ -142,6 +143,7 @@ public class MultiPinPlotView extends LinearLayout implements PinView {
 
     @Override
     public void onTimeRangeChanged(double min, double max) {
+        /// Log.d(D, "onTimeRangeChanged(" + min + "," + max + ")");
         chart.setXTo(min, max);
         chart.repaintPlot();
     }

@@ -8,6 +8,8 @@ import android.widget.FrameLayout;
 
 import org.achartengine.ChartFactory;
 import org.achartengine.GraphicalView;
+import org.achartengine.chart.AbstractChart;
+import org.achartengine.chart.XYChart;
 import org.achartengine.model.XYMultipleSeriesDataset;
 import org.achartengine.model.XYSeries;
 import org.achartengine.renderer.XYMultipleSeriesRenderer;
@@ -15,6 +17,10 @@ import org.achartengine.renderer.XYSeriesRenderer;
 import org.achartengine.tools.PanListener;
 import org.achartengine.tools.ZoomEvent;
 import org.achartengine.tools.ZoomListener;
+
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
+import java.util.List;
 
 /**
  *
@@ -91,6 +97,68 @@ public class MyLineChartView extends FrameLayout {
                 notifyPlotRangeChanged();
             }
         }, true, true);
+
+        // This is a little custom extension to make X-axis labels more user friendly
+        //
+        AbstractChart chart=plot.getChart();
+        if(chart instanceof XYChart) {
+            ((XYChart)chart).setXLabelRenderer(new XYChart.LabelRenderer() {
+                private double range=0;
+
+                @Override
+                public void prepare(List<Double> xLabels) {
+                    if(xLabels.isEmpty())
+                        return;
+
+                    range = xLabels.get(xLabels.size()-1) - xLabels.get(0);
+                }
+
+                @Override
+                public String getLabel(NumberFormat format, double value) {
+                    String text="";
+
+                    if(value==0)
+                        return "0";
+
+                    if(value<0) {
+                        value=Math.abs(value);
+                        text="-";
+                    }
+
+                    int s=(int)(value % 60);
+                    int m=(int)((value / 60) % 60);
+                    int h=(int)((value / 3600) % 24);
+                    int d=(int)(value / 86400);
+
+                    NumberFormat f0=new DecimalFormat("00");
+                    NumberFormat f1=new DecimalFormat("#");
+
+                    if (d > 0)
+                        text+=d + "d+";
+
+                    if (h > 0 || d > 0)
+                        text+=f1.format(h)+":";
+
+                    if (m > 0 || h > 0 || d > 0)
+                        text+=(h>0 || d>0 ? f0 : f1).format(m);
+
+                    if (range < 600)
+                        text+=":"+(h>0 || d>0 || m>0 ? f0 : f1).format(s);
+
+                    /// format=new DecimalFormat("00");
+                    /// if (d > 0) text+=d + "d+";
+                    /// text+=format.format(h) + ":" + format.format(m);
+                    /// if(range<600) text+=":" + format.format(s);
+
+                    /// if (d > 0)                      text+=d + "d";
+                    /// if (h > 0 || d > 0)             text+=h + "h";
+                    /// if (m > 0 || d > 0 || m > 0)    text+=m + "m";
+                    /// if (range < 600)                text+=s + "s";
+
+                    return text;
+                }
+            });
+        }
     }
 
     /**
