@@ -141,6 +141,7 @@ public class MainActivity extends IOIOActivity implements PinView.OnTimeRangeCha
                 }
 
                 currentView.onPinSeriesDataChanged();
+
                 try {
                     Thread.sleep(100);
                 } catch (InterruptedException e) {
@@ -149,7 +150,6 @@ public class MainActivity extends IOIOActivity implements PinView.OnTimeRangeCha
             }
         }
     };
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -442,8 +442,10 @@ public class MainActivity extends IOIOActivity implements PinView.OnTimeRangeCha
 
     public void setPaused(boolean paused) {
         pausedBefore = this.paused;
+
         if (paused || ioioConnected) {  // Do not start if IOIO is not connected.
             this.paused = paused;
+
             if (paused) {
                 if (menuItemStartPause != null) {
                     menuItemStartPause.setIcon(getResources().getDrawable(R.drawable.ic_menu_start));
@@ -543,27 +545,61 @@ public class MainActivity extends IOIOActivity implements PinView.OnTimeRangeCha
                         // we might go to sleep for hours.
                         //
                         Thread.sleep(100);
-                    } else {
+                    }
+                    else {
                         led.write(false);  // Turn led on during measurement.
 
-                        // Measure time since the last measurement.
-                        long measuredTime = System.nanoTime();
-                        if (lastMeasuredTime != -1)
-                            time += (measuredTime - lastMeasuredTime) / 1000000000.;
-                        lastMeasuredTime = measuredTime;
+                        measure();
 
-                        // Measure voltage.
-                        for (int i = 0; i < numPins; i++)
-                            pins[i].addPointToSeries(time, analogPins[i].getVoltage());
+                        // There does not seem to be an easy way to interrupt the sleep in this
+                        // IOIOLooper thread. Yet with sleep times in seconds or minutes we need
+                        // to do that when the user pauses or the interval changes.
+                        //
+                        long ms=measurementInterval * measurementUnit.getMsMultiplier();
+                        if(ms<=200) {
+                            Thread.sleep(ms);
+                        }
+                        else {
+                            long startTime=System.nanoTime()/1000000;
 
-                        onMeasurementFinished();
+                            while(!paused) {
+                                Thread.sleep(200);
 
-                        Thread.sleep(measurementInterval * measurementUnit.getMsMultiplier());
+                                // Recalculating when we want to wake up, as
+                                // the interval might have changed while we slept.
+                                //
+                                long stopTime=startTime + measurementInterval * measurementUnit.getMsMultiplier();
+
+                                long curTime=System.nanoTime() / 1000000;
+
+                                if (curTime >= stopTime)
+                                    break;
+                            }
+
+                            /// Log.d(D,"Total slept: "+(System.nanoTime()/1000000-startTime)+"ms");
+
+                            if(paused)
+                                measure();
+                        }
                     }
                 } catch (ConnectionLostException e) {
                     // IOIOLib does not treat ConnectionLostException properly, so it's done here.
                     disconnected();
                 }
+            }
+
+            private void measure() throws ConnectionLostException, InterruptedException {
+                // Measure time since the last measurement.
+                long measuredTime = System.nanoTime();
+                if (lastMeasuredTime != -1)
+                    time += (measuredTime - lastMeasuredTime) / 1000000000.;
+                lastMeasuredTime = measuredTime;
+
+                // Measure voltage.
+                for (int i = 0; i < numPins; i++)
+                    pins[i].addPointToSeries(time, analogPins[i].getVoltage());
+
+                onMeasurementFinished();
             }
 
             @Override
