@@ -107,10 +107,7 @@ public class MyLineChartView extends FrameLayout {
 
                 @Override
                 public void prepare(List<Double> xLabels) {
-                    if(xLabels.isEmpty())
-                        return;
-
-                    range = xLabels.get(xLabels.size()-1) - xLabels.get(0);
+                    range = plotRenderer.getXAxisMax() - plotRenderer.getXAxisMin();
                 }
 
                 @Override
@@ -125,35 +122,50 @@ public class MyLineChartView extends FrameLayout {
                         text="-";
                     }
 
-                    int s=(int)(value % 60);
-                    int m=(int)((value / 60) % 60);
-                    int h=(int)((value / 3600) % 24);
-                    int d=(int)(value / 86400);
+                    // This commented out block works fine, but the times it shows
+                    // are not really suitable for this task. The user most likely
+                    // wants to see how much time is between two markers on the chart
+                    // and it is hard to see with labels like "5:33" vs "11:06".
+                    //
+                    /// int s=(int)(value % 60);
+                    /// int m=(int)((value / 60) % 60);
+                    /// int h=(int)((value / 3600) % 24);
+                    /// int d=(int)(value / 86400);
+                    ///
+                    /// NumberFormat f0=new DecimalFormat("00");
+                    /// NumberFormat f1=new DecimalFormat("#");
+                    ///
+                    /// if (d > 0)
+                    ///     text+=d + "d+";
+                    ///
+                    /// if (h > 0 || d > 0)
+                    ///     text+=f1.format(h)+":";
+                    ///
+                    /// if (m > 0 || h > 0 || d > 0)
+                    ///    text+=(h>0 || d>0 ? f0 : f1).format(m);
+                    ///
+                    /// if (range < 600)
+                    ///     text+=":"+(h>0 || d>0 || m>0 ? f0 : f1).format(s);
 
-                    NumberFormat f0=new DecimalFormat("00");
-                    NumberFormat f1=new DecimalFormat("#");
+                    // For easier calculation of interval showing the labels as
+                    // decimal values of one unit -- sec, min, or hour.
+                    //
+                    double divider;
+                    String suffix;
+                    if(range<60*10) {
+                        divider=1;
+                        suffix="s";
+                    }
+                    else if(range<3600*10) {
+                        divider=60;
+                        suffix="m";
+                    }
+                    else {
+                        divider=3600;
+                        suffix="h";
+                    }
 
-                    if (d > 0)
-                        text+=d + "d+";
-
-                    if (h > 0 || d > 0)
-                        text+=f1.format(h)+":";
-
-                    if (m > 0 || h > 0 || d > 0)
-                        text+=(h>0 || d>0 ? f0 : f1).format(m);
-
-                    if (range < 600)
-                        text+=":"+(h>0 || d>0 || m>0 ? f0 : f1).format(s);
-
-                    /// format=new DecimalFormat("00");
-                    /// if (d > 0) text+=d + "d+";
-                    /// text+=format.format(h) + ":" + format.format(m);
-                    /// if(range<600) text+=":" + format.format(s);
-
-                    /// if (d > 0)                      text+=d + "d";
-                    /// if (h > 0 || d > 0)             text+=h + "h";
-                    /// if (m > 0 || d > 0 || m > 0)    text+=m + "m";
-                    /// if (range < 600)                text+=s + "s";
+                    text+=(new DecimalFormat("#").format(value/divider))+suffix;
 
                     return text;
                 }
