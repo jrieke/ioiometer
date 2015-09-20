@@ -200,8 +200,8 @@ public abstract class AbstractChart implements Serializable {
 
   /**
    * Makes sure the fraction digit is not displayed, if not needed.
-   * 
-   * 
+   *
+   *
    * @param format the number format for the label
    * @param label the input label value
    * @return the label without the useless fraction digit

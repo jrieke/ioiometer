@@ -117,6 +117,14 @@ public class MainActivity extends IOIOActivity implements PinView.OnTimeRangeCha
         }
     }
 
+    // At least how many data points to show in the view
+    //
+    private final static int VIEW_DATA_POINTS_MIN   = 100;
+
+    // Move range by this many data points when the right side of the chart is reached.
+    //
+    private final static int VIEW_DATA_POINTS_STEP  = 20;
+
     // A separate thread which steadily updates the graphs in the current view if not paused.
     Thread uiThread = new Thread() {
         @Override
@@ -133,6 +141,7 @@ public class MainActivity extends IOIOActivity implements PinView.OnTimeRangeCha
                 }
 
                 currentView.onPinSeriesDataChanged();
+
                 try {
                     Thread.sleep(100);
                 } catch (InterruptedException e) {
@@ -141,7 +150,6 @@ public class MainActivity extends IOIOActivity implements PinView.OnTimeRangeCha
             }
         }
     };
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -214,12 +222,12 @@ public class MainActivity extends IOIOActivity implements PinView.OnTimeRangeCha
             public void onGlobalLayout() {
                 // Position the ProgressBar by looking at the start position of the content area.
                 // Note: mainProgressBar.setY(136) will not work because of different screen densities and different sizes of the action bar.
-                View contentView = decorView.findViewById(android.R.id.content);
+                View contentView=decorView.findViewById(android.R.id.content);
 
-                if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
                     mainProgressBar.setY(contentView.getY() - 10);
 
-                ViewTreeObserver observer = mainProgressBar.getViewTreeObserver();
+                ViewTreeObserver observer=mainProgressBar.getViewTreeObserver();
                 observer.removeGlobalOnLayoutListener(this);
             }
         });
@@ -272,7 +280,7 @@ public class MainActivity extends IOIOActivity implements PinView.OnTimeRangeCha
         measurementSpinner.setOnItemSelectedListener(new Spinner.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
-                MeasurementUnit unit=(MeasurementUnit)adapterView.getItemAtPosition(i);
+                MeasurementUnit unit=(MeasurementUnit) adapterView.getItemAtPosition(i);
                 setMeasurementUnit(unit);
                 showIntervalUnit();
             }
@@ -308,6 +316,8 @@ public class MainActivity extends IOIOActivity implements PinView.OnTimeRangeCha
                 setViewMode(viewMode);
             }
         });
+
+        onMeasurementIntervalChange();
     }
 
     @Override
@@ -343,10 +353,12 @@ public class MainActivity extends IOIOActivity implements PinView.OnTimeRangeCha
 
     private void setMeasurementInterval(int measurementInterval) {
         this.measurementInterval = measurementInterval;
+        onMeasurementIntervalChange();
     }
 
     private void setMeasurementUnit(MeasurementUnit measurementUnit) {
         this.measurementUnit = measurementUnit;
+        onMeasurementIntervalChange();
     }
 
     @Override
@@ -430,8 +442,10 @@ public class MainActivity extends IOIOActivity implements PinView.OnTimeRangeCha
 
     public void setPaused(boolean paused) {
         pausedBefore = this.paused;
+
         if (paused || ioioConnected) {  // Do not start if IOIO is not connected.
             this.paused = paused;
+
             if (paused) {
                 if (menuItemStartPause != null) {
                     menuItemStartPause.setIcon(getResources().getDrawable(R.drawable.ic_menu_start));
@@ -526,27 +540,66 @@ public class MainActivity extends IOIOActivity implements PinView.OnTimeRangeCha
                 try {
                     if (paused) {
                         led.write(true);  // Turn led off during pause.
-                    } else {
+
+                        // In "paused" state always sleeping a short while. Otherwise
+                        // we might go to sleep for hours.
+                        //
+                        Thread.sleep(100);
+                    }
+                    else {
                         led.write(false);  // Turn led on during measurement.
 
-                        // Measure time since the last measurement.
-                        long measuredTime = System.nanoTime();
-                        if (lastMeasuredTime != -1)
-                            time += (measuredTime - lastMeasuredTime) / 1000000000.;
-                        lastMeasuredTime = measuredTime;
+                        measure();
 
-                        // Measure voltage.
-                        for (int i = 0; i < numPins; i++)
-                            pins[i].addPointToSeries(time, analogPins[i].getVoltage());
+                        // There does not seem to be an easy way to interrupt the sleep in this
+                        // IOIOLooper thread. Yet with sleep times in seconds or minutes we need
+                        // to do that when the user pauses or the interval changes.
+                        //
+                        long ms=measurementInterval * measurementUnit.getMsMultiplier();
+                        if(ms<=200) {
+                            Thread.sleep(ms);
+                        }
+                        else {
+                            long startTime=System.nanoTime()/1000000;
 
-                        onMeasurementFinished();
+                            while(!paused) {
+                                Thread.sleep(200);
+
+                                // Recalculating when we want to wake up, as
+                                // the interval might have changed while we slept.
+                                //
+                                long stopTime=startTime + measurementInterval * measurementUnit.getMsMultiplier();
+
+                                long curTime=System.nanoTime() / 1000000;
+
+                                if (curTime >= stopTime)
+                                    break;
+                            }
+
+                            /// Log.d(D,"Total slept: "+(System.nanoTime()/1000000-startTime)+"ms");
+
+                            if(paused)
+                                measure();
+                        }
                     }
-
-                    Thread.sleep(measurementInterval * measurementUnit.getMsMultiplier());
                 } catch (ConnectionLostException e) {
                     // IOIOLib does not treat ConnectionLostException properly, so it's done here.
                     disconnected();
                 }
+            }
+
+            private void measure() throws ConnectionLostException, InterruptedException {
+                // Measure time since the last measurement.
+                long measuredTime = System.nanoTime();
+                if (lastMeasuredTime != -1)
+                    time += (measuredTime - lastMeasuredTime) / 1000000000.;
+                lastMeasuredTime = measuredTime;
+
+                // Measure voltage.
+                for (int i = 0; i < numPins; i++)
+                    pins[i].addPointToSeries(time, analogPins[i].getVoltage());
+
+                onMeasurementFinished();
             }
 
             @Override
@@ -588,13 +641,61 @@ public class MainActivity extends IOIOActivity implements PinView.OnTimeRangeCha
         showToast("Incompatible Firmware");
     }
 
+    /**
+     * Called when the measurement interval changes (either the unit or the value).
+     * Making sure at least some minimum number of measurements will
+     * fit in our views.
+     */
+    private void onMeasurementIntervalChange() {
+        double curRange=timeRangeMax-timeRangeMin;
+
+        double interval=((double)(measurementInterval * measurementUnit.msMultiplier))/1000D;
+
+        double newRange=interval * VIEW_DATA_POINTS_MIN;
+
+        // Showing at least 5 seconds, even with 5ms interval.
+        //
+        if(newRange<5) newRange=5;
+
+        double minOverhang=interval * VIEW_DATA_POINTS_STEP;
+
+        synchronized (this) {
+            timeRangeMax=time + minOverhang;
+            timeRangeMin=timeRangeMax - newRange;
+            if(timeRangeMin<0) {
+                timeRangeMin=0;
+                timeRangeMax=newRange;
+            }
+
+            if (currentView != null)
+                currentView.onTimeRangeChanged(timeRangeMin, timeRangeMax);
+        }
+    }
+
+    /**
+     * Called on the measurement thread when a measurement is complete.
+     */
     private void onMeasurementFinished() {
-        // Move plots if the graphs do not fit on the screen any more.
-        if (time >= timeRangeMax) {
-            double offset = (timeRangeMax - timeRangeMin) / 2;
-            timeRangeMin += offset;
-            timeRangeMax += offset;
-            currentView.onTimeRangeChanged(timeRangeMin, timeRangeMax);
+
+        // Careful with changing timeRange from UI and measurement
+        // threads at the same time
+        //
+        synchronized (this) {
+
+            // Move plots if the graphs do not fit on the screen any more.
+            // Not adjusting the overall range in case it was manually changed.
+            //
+            if (time >= timeRangeMax) {
+
+                double curRange=timeRangeMax - timeRangeMin;
+
+                long msOffset=measurementInterval * measurementUnit.getMsMultiplier() * VIEW_DATA_POINTS_STEP;
+
+                timeRangeMax=time + msOffset/1000D;
+                timeRangeMin=timeRangeMax - curRange;
+
+                currentView.onTimeRangeChanged(timeRangeMin, timeRangeMax);
+            }
         }
     }
 
@@ -651,6 +752,7 @@ public class MainActivity extends IOIOActivity implements PinView.OnTimeRangeCha
      */
     @Override
     public void onTimeRangeChanged(PinView source, double min, double max) {
+        /// Log.d(D,"onTimeRangeChanged(...,"+min+","+max+")");
         timeRangeMin = min;
         timeRangeMax = max;
     }

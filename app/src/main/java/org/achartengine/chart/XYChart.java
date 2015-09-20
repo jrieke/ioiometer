@@ -15,6 +15,7 @@
  */
 package org.achartengine.chart;
 
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -72,6 +73,13 @@ public abstract class XYChart extends AbstractChart {
    * and the RectF list index is the point index in that series.
    */
   private Map<Integer, List<ClickableArea>> clickableAreas = new HashMap<Integer, List<ClickableArea>>();
+
+  private LabelRenderer mXLabelRenderer=null;
+
+  public interface LabelRenderer {
+    String getLabel(NumberFormat labelFormat, double value);
+    void prepare(List<Double> xLabels);
+  }
 
   protected XYChart() {
   }
@@ -681,13 +689,24 @@ public abstract class XYChart extends AbstractChart {
     int length = xLabels.size();
     boolean showLabels = mRenderer.isShowLabels();
     boolean showGridY = mRenderer.isShowGridY();
+
+    if(mXLabelRenderer!=null)
+      mXLabelRenderer.prepare(xLabels);
+
     for (int i = 0; i < length; i++) {
       double label = xLabels.get(i);
+
+      String labelText;
+      if(mXLabelRenderer==null)
+        labelText=getLabel(mRenderer.getLabelFormat(), label);
+      else
+        labelText=mXLabelRenderer.getLabel(mRenderer.getLabelFormat(),label);
+
       float xLabel = (float) (left + xPixelsPerUnit * (label - minX));
       if (showLabels) {
         paint.setColor(mRenderer.getXLabelsColor());
         canvas.drawLine(xLabel, bottom, xLabel, bottom + mRenderer.getLabelsTextSize() / 3, paint);
-        drawText(canvas, getLabel(mRenderer.getLabelFormat(), label), xLabel,
+        drawText(canvas, labelText, xLabel,
             bottom + mRenderer.getLabelsTextSize() * 4 / 3 + mRenderer.getXLabelsPadding(), paint,
             mRenderer.getXLabelsAngle());
       }
@@ -980,4 +999,10 @@ public abstract class XYChart extends AbstractChart {
    */
   public abstract String getChartType();
 
+  /**
+   * Set an optional renderer for X labels.
+   */
+  public void setXLabelRenderer(LabelRenderer renderer) {
+    this.mXLabelRenderer=renderer;
+  }
 }
