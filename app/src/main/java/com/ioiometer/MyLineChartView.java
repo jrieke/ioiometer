@@ -154,15 +154,15 @@ public class MyLineChartView extends FrameLayout {
                     String suffix;
                     if(range<60*10) {
                         divider=1;
-                        suffix="s";
+                        suffix=" s";
                     }
                     else if(range<3600*10) {
                         divider=60;
-                        suffix="m";
+                        suffix=" min";
                     }
                     else {
                         divider=3600;
-                        suffix="h";
+                        suffix=" h";
                     }
 
                     text+=(new DecimalFormat("#").format(value/divider))+suffix;

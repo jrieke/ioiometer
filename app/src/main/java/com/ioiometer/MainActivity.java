@@ -97,7 +97,7 @@ public class MainActivity extends IOIOActivity implements PinView.OnTimeRangeCha
 
     private enum MeasurementUnit {
         MS      ("ms",   1),
-        SEC     ("sec",  1000),
+        SEC     ("s",  1000),
         MIN     ("min",  60000);
 
         private String label;

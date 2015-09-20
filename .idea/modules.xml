@@ -2,10 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/IOIOMeter.iml" filepath="$PROJECT_DIR$/IOIOMeter.iml" />
-      <module fileurl="file://$PROJECT_DIR$/IOIOMeterRelease.iml" filepath="$PROJECT_DIR$/IOIOMeterRelease.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ioiometer.iml" filepath="$PROJECT_DIR$/ioiometer.iml" />
     </modules>
   </component>
 </project>
-
