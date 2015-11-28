@@ -1,8 +1,7 @@
 IOIO Meter
 ==========
 
-Note: I wrote this code quite a while ago. Hence, it doesn't use any of the latest Android
-features nor is it in good shape, overall. Use with care!
+Note: I wrote this code quite a while ago. It was hardly updated since Android SDK version 19. 
 
 Download the app from the [Play Store](https://play.google.com/store/apps/details?id=com.ioiometer).
 Screenshots and description are up there, too.
